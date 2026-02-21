@@ -1,0 +1,1 @@
+make sure that app. import work, that the repo behaves like a proper module!

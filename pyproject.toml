@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "raisin-logreg"
+version = "0.1.0"
+description = "Logistic regression from scratch (NumPy only) + minimal HTTP inference server"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "numpy==2.1.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
