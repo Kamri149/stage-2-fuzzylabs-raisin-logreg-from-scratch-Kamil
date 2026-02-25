@@ -195,8 +195,6 @@ Server binds to:
 
     http://0.0.0.0:8000
 
-(can also be started using `docker run -p 8000:8000 <container name>`; see Containerisation below)
-
 ------------------------------------------------------------------------
 
 ## Health Check
@@ -293,9 +291,134 @@ Kill it (if safe to do so):
     
     taskkill /PID <PID> /F
 
-Then rerun:
+
+------------------------------------------------------------------------
+
+# Testing
+
+The repository includes both unit tests and integration tests:
+
+
+    tests/
+    ├── test_model.py # Unit tests for logistic regression implementation
+    └── test_inference.py # Integration tests for HTTP server and inference behaviour
+
+
+Tests are written using `pytest`.
+
+Run all tests:
+
 
     pytest
+
+
+------------------------------------------------------------------------
+
+## Model Tests
+
+`test_model.py` validates core mathematical and optimisation behaviour:
+
+- Loss decreases during training
+- Deterministic behaviour with fixed seed
+- Probability bounds (0 ≤ p ≤ 1)
+- Valid prediction outputs
+- Basic correctness of optimisation pipeline
+
+These tests operate entirely in-memory and do **not** require a running server.
+
+Run only model tests:
+
+
+pytest tests/test_model.py
+
+
+------------------------------------------------------------------------
+
+## Inference Server Tests
+
+`test_inference.py` performs full integration testing of the HTTP layer.
+
+The test suite:
+
+1. Starts the server as a subprocess  
+2. Waits for `/healthz`  
+3. Executes end-to-end inference calls  
+4. Validates structured error responses  
+5. Performs basic concurrent request testing  
+6. Tears down the server at completion  
+
+The following behaviours are verified:
+
+- `GET /healthz`
+- `POST /predict` (happy path)
+- Missing feature validation
+- Malformed JSON handling
+- Concurrent request stability
+
+Run only inference tests:
+
+
+pytest tests/test_inference.py
+
+
+------------------------------------------------------------------------
+
+# Testing
+
+Tests are written using `pytest`.
+
+
+    pytest
+
+
+## Model Tests
+
+`test_model.py` validates:
+
+- Optimisation behaviour
+- Deterministic training
+- Probability bounds
+- Prediction correctness
+
+These tests run entirely in memory.
+
+## Inference Integration Tests
+
+`test_inference.py`:
+
+- Starts a server subprocess
+- Waits for `/healthz`
+- Executes end-to-end inference
+- Validates error handling
+- Performs concurrent request checks
+- Tears down the server
+
+### Important: Port Usage
+
+Integration tests bind to:
+
+
+http://127.0.0.1:8000
+
+
+If another process is already using port 8000:
+
+- The test server will fail to bind
+- Tests may interact with the already-running service
+- Or fail during startup
+
+Check port usage (Windows):
+
+
+netstat -ano | findstr :8000
+tasklist /FI "PID eq <PID>"
+taskkill /PID <PID> /F
+
+
+Then rerun:
+
+
+pytest
 
 
 ------------------------------------------------------------------------
