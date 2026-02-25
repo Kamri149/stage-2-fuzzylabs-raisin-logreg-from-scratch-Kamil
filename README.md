@@ -113,7 +113,7 @@ Using `-m` ensures correct package import resolution and mirrors production exec
 - Console metrics (loss + accuracy)
 - Model saved to:
 
-    models/model.npz
+    `models/model.npz`
 
 ### Cross Validation
 
