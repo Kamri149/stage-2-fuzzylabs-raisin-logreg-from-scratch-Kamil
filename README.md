@@ -113,7 +113,7 @@ Using `-m` ensures correct package import resolution and mirrors production exec
 - Console metrics (loss + accuracy)
 - Model saved to:
 
-    models/lg_model.npz
+    models/model.npz
 
 ### Cross Validation
 
@@ -359,67 +359,6 @@ Run only inference tests:
 
 
 pytest tests/test_inference.py
-
-
-------------------------------------------------------------------------
-
-# Testing
-
-Tests are written using `pytest`.
-
-
-    pytest
-
-
-## Model Tests
-
-`test_model.py` validates:
-
-- Optimisation behaviour
-- Deterministic training
-- Probability bounds
-- Prediction correctness
-
-These tests run entirely in memory.
-
-## Inference Integration Tests
-
-`test_inference.py`:
-
-- Starts a server subprocess
-- Waits for `/healthz`
-- Executes end-to-end inference
-- Validates error handling
-- Performs concurrent request checks
-- Tears down the server
-
-### Important: Port Usage
-
-Integration tests bind to:
-
-
-http://127.0.0.1:8000
-
-
-If another process is already using port 8000:
-
-- The test server will fail to bind
-- Tests may interact with the already-running service
-- Or fail during startup
-
-Check port usage (Windows):
-
-
-netstat -ano | findstr :8000
-tasklist /FI "PID eq <PID>"
-taskkill /PID <PID> /F
-
-
-Then rerun:
-
-
-pytest
-
 
 ------------------------------------------------------------------------
 
