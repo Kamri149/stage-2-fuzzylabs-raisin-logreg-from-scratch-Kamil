@@ -195,6 +195,8 @@ Server binds to:
 
     http://0.0.0.0:8000
 
+(can also be started using `docker run -p 8000:8000 <container name>`; see Containerisation below)
+
 ------------------------------------------------------------------------
 
 ## Health Check
