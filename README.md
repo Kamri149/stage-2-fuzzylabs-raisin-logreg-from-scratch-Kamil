@@ -329,7 +329,7 @@ These tests operate entirely in-memory and do **not** require a running server.
 Run only model tests:
 
 
-pytest tests/test_model.py
+    pytest tests/test_model.py
 
 
 ------------------------------------------------------------------------
