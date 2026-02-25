@@ -358,7 +358,7 @@ The following behaviours are verified:
 Run only inference tests:
 
 
-pytest tests/test_inference.py
+    pytest tests/test_inference.py
 
 ------------------------------------------------------------------------
 
