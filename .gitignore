@@ -4,12 +4,14 @@ __pycache__/
 *.pyo
 *.pyd
 *.sqlite3
-model.npz
+/models/
 *.npz
 .DS_Store
 .vscode/
 .idea/
-pytest_cache/
+.pytest_cache/
 dist/
 build/
 *.egg-info/
+/archive/
+# normally I'd add *.csv but will let csv upload just for simplicity of running it for someone who downloads it

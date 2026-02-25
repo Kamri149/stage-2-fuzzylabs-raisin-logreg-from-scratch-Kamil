@@ -5,19 +5,16 @@
 A production-oriented binary classification system implemented entirely
 from first principles using:
 
--   Built-in Python libraries
--   NumPy
+- Built-in Python libraries
+- NumPy
 
 This repository demonstrates:
 
--   Correct mathematical optimisation
--   Deterministic training
--   Lightweight experiment tracking (MiniFlow)
--   Model registry concept
--   Data drift monitoring
--   Feature-level explainability
--   Minimal HTTP inference server
--   Lean containerisation ready for Kubernetes
+- Correct mathematical optimisation
+- Deterministic training
+- Feature-level explainability
+- Minimal HTTP inference server
+- Lean containerisation ready for Kubernetes
 
 No sklearn. No pandas. No MLflow. No web frameworks.
 
@@ -25,19 +22,18 @@ No sklearn. No pandas. No MLflow. No web frameworks.
 
 # Overview
 
-The Raisin dataset contains:
+The Raisin dataset (`data/Raisin_Dataset.csv`) contains:
 
--   900 samples
--   7 numerical features
--   2 classes (Kecimen, Besni)
+- 900 samples
+- 7 numerical features
+- 2 classes (Kecimen, Besni)
 
-The objective is not simply classification accuracy, but to demonstrate:
+The goal is not just classification accuracy, but demonstrating:
 
--   Mathematical correctness
--   Reproducibility
--   Model lifecycle thinking
--   Monitoring and drift detection
--   Production-ready design with minimal dependencies
+- Mathematical correctness
+- Reproducibility
+- Explicit state handling
+- Production-style structure with minimal dependencies
 
 ------------------------------------------------------------------------
 
@@ -45,40 +41,55 @@ The objective is not simply classification accuracy, but to demonstrate:
 
 Binary logistic regression:
 
-p(y=1 \| x) = sigmoid(w\^T x + b)
+    p(y=1 | x) = sigmoid(w^T x + b)
 
 Where:
 
-sigmoid(z) = 1 / (1 + exp(-z))
+    sigmoid(z) = 1 / (1 + exp(-z))
 
 ## Training Configuration
 
--   Loss: Binary cross-entropy
--   Optimiser: Batch gradient descent
--   Feature scaling: Standardisation (training statistics only)
--   Stable sigmoid via clipped logits
--   Probability clipping inside loss
+- Loss: Binary cross-entropy
+- Optimiser: Batch gradient descent
+- Feature scaling: Standardisation
+- Numerically stable sigmoid (clipped logits)
+- Probability clipping in loss
 
-## Gradients
+Gradients:
 
-dw = (1/n) X\^T (p − y)\
-db = (1/n) sum(p − y)
-
-Optional extension: L2 regularisation.
+    dw = (1/n) X^T (p − y)
+    db = (1/n) sum(p − y)
 
 ------------------------------------------------------------------------
 
 # Project Structure
 
     .
-    ├── model.py          # Logistic regression implementation
-    ├── train.py          # Deterministic training pipeline
-    ├── server.py         # Minimal inference server (http.server)
-    ├── miniflow.py       # Lightweight experiment tracker
-    ├── monitoring.py     # Drift detection utilities
-    ├── requirements.txt
+    ├── app/
+    │   ├── __init__.py
+    │   ├── load.py                 # Data loading utilities
+    │   ├── model.py                # Logistic regression implementation
+    │   ├── train.py                # Deterministic training pipeline
+    │   ├── server.py               # Minimal inference server (http.server)
+    │   ├── utils.py                # Additional utilities
+    │   └── eval/
+    │       ├── __init__.py
+    │       ├── cv.py               # Cross-validation utilities
+    │       └── functions.py        # Validation functions
+    │
+    ├── models/                     # Trained models are saved here
+    ├── tests/                      # Unit tests 
+    │       ├── __init__.py
+    │       ├── test_inference.py         # testing server and inference behaviour
+    │       └── test_model.py             # testing logistic regression model behaviour
+    ├── data/                             # Folder where small .csv data file lives (used as a demo)           
+    │       └── Raisin_Dataset.csv        # training data
+    │
     ├── Dockerfile
-    └── miniflow/         # Generated experiment runs
+    ├── Makefile
+    ├── pyproject.toml
+    ├── requirements.txt
+    └── README.md
 
 ------------------------------------------------------------------------
 
@@ -86,158 +97,217 @@ Optional extension: L2 regularisation.
 
 ## Install Dependencies
 
-pip install -r requirements.txt
+    pip install -r requirements.txt
 
-## Run Training
+## Run Training (from root)
 
-python train.py
+    python -m app.train --csv data/Raisin_Dataset.csv
 
-Outputs:
+Using `-m` ensures correct package import resolution and mirrors production execution.
 
--   model.npz (weights, bias, scaler statistics, feature order)
--   MiniFlow run directory
--   Validation metrics printed to console
+### Default Behaviour
 
-------------------------------------------------------------------------
+- Train/validation split
+- Feature scaling
+- Gradient descent optimisation
+- Console metrics (loss + accuracy)
+- Model saved to:
 
-# MiniFlow --- MLflow From Scratch
+    models/lg_model.npz
 
-MiniFlow is a minimal experiment tracking implementation.
+### Cross Validation
 
-## Experiment Structure
+    python -m app.train --csv data/Raisin_Dataset.csv --cv 5
 
-miniflow/experiments/`<experiment>`{=html}/runs/`<run_id>`{=html}/
-
-Each run contains:
-
--   meta.json --- run metadata
--   params.json --- hyperparameters
--   metrics.jsonl --- append-only metric time series
--   artifacts/
-    -   model/model.npz
-    -   model/model_card.json
-    -   train_profile.json
-
-## Registry
-
-Production model mapping is stored in:
-
-miniflow/registry.json
-
-Example:
-
-{ "raisin_logreg": { "production": "a3f92cbb12e4", "updated_ts_ms":
-1730000000000 } }
-
-Promotion rule can be validation accuracy-based.
+Performs stratified K-fold CV and retrains final model using best hyperparameters.
 
 ------------------------------------------------------------------------
 
-# Continuous Evaluation
+# Model Artifact
 
-Strategy:
+The saved `.npz` contains:
 
--   Deterministic validation split
--   Metrics logged per run
--   Compare new runs to production run
--   Promote only if validation improves
+- Weight vector `w`
+- Bias `b`
+- Scaler mean and std
+- Ordered feature names
 
-Tracked metrics:
-
--   Training loss
--   Validation loss
--   Training accuracy
--   Validation accuracy
-
-------------------------------------------------------------------------
-
-# Drift Monitoring
-
-During training, the system stores:
-
--   Feature means
--   Feature standard deviations
--   Feature ordering
-
-At inference, drift score is computed as:
-
-mean(abs(z_shift))
-
-Where:
-
-z_shift = (mu_new − mu_train) / sigma_train
-
-------------------------------------------------------------------------
-
-# Explainability
-
-Logistic regression is inherently interpretable.
-
-For a prediction:
-
-logit = w\^T x + b
-
-Feature contribution:
-
-contribution_i = w_i \* x_i
-
-Example response:
-
-{ "pred": 1, "p_class1": 0.87, "logit": 1.92, "feature_contrib_logit": {
-"Area": 0.52, "Perimeter": 0.31 } }
+This avoids pickle and ensures portability.
 
 ------------------------------------------------------------------------
 
 # Inference Server
 
-Implemented using Python's built-in http.server.
+The inference layer is implemented using Python’s built-in `http.server`.
 
-Start server:
+No external web frameworks are used.
 
-python server.py
+## Architectural Design
 
-Health check:
+The server separates concerns clearly:
 
-curl http://localhost:8000/healthz
+1. Domain logic (pure functions)
+2. Routing layer
+3. Thin HTTP handler
 
-Prediction example:
+### Domain Layer
 
-curl -X POST http://localhost:8000/predict -H "Content-Type:
-application/json" -d
-'{"Area":87524,"MajorAxisLength":442.24,"MinorAxisLength":253.29,"Eccentricity":0.8197,"ConvexArea":90546,"Extent":0.7586,"Perimeter":1184.04}'
+- `_vectorize_one` ensures deterministic feature ordering
+- `validate_payload` enforces schema correctness
+- `predict_single` performs full inference pipeline:
+    - Scaling
+    - Probability computation
+    - Logit computation
+    - Per-feature contribution breakdown
+
+### Routing Layer
+
+The `route()` function maps:
+
+- `GET /healthz`
+- `GET /model`
+- `POST /predict`
+
+to their respective handlers.
+
+This keeps request routing separate from HTTP mechanics.
+
+### HTTP Handler
+
+`Handler` only:
+
+- Parses request path
+- Delegates to `route`
+- Serialises JSON response
+- Writes HTTP headers
+
+This mirrors production server patterns where routing logic is separated from transport logic.
 
 ------------------------------------------------------------------------
+
+## Start Server
+
+From repository root:
+
+    python -m app.server
+
+Server binds to:
+
+    http://0.0.0.0:8000
+
+------------------------------------------------------------------------
+
+## Health Check
+
+    curl -v http://localhost:8000/healthz
+
+Response:
+
+    { "status": "ok" }
+
+------------------------------------------------------------------------
+
+## Model Metadata
+
+    curl http://localhost:8000/model
+
+Returns:
+
+- Model artifact path
+- Ordered feature list
+
+------------------------------------------------------------------------
+
+## Prediction Endpoint
+
+Endpoint:
+
+    POST /predict
+
+Payload must be a JSON object containing all required feature names.
+
+Example (PowerShell):
+
+    $body = @{
+        Area = 87524
+        MajorAxisLength = 442.24
+        MinorAxisLength = 253.29
+        Eccentricity = 0.8197
+        ConvexArea = 90546
+        Extent = 0.7586
+        Perimeter = 1184.04
+    } | ConvertTo-Json
+
+    Invoke-RestMethod `
+        -Uri "http://localhost:8000/predict" `
+        -Method POST `
+        -ContentType "application/json" `
+        -Body $body
+
+Example response:
+
+    {
+        "pred": 1,
+        "p_class1": 0.87,
+        "logit": 1.92,
+        "feature_contrib_logit": {
+            "Area": 0.52,
+            "Perimeter": 0.31
+        },
+        "feature_names": [...]
+    }
+
+------------------------------------------------------------------------
+
+# Error Handling
+
+The server returns structured error responses:
+
+- 400 Bad Request for malformed payload
+- 404 Not Found for unknown endpoints
+
+Example error:
+
+    {
+        "error": "missing_features",
+        "missing": ["Perimeter"]
+    }
+
+------------------------------------------------------------------------
+
+# Server not starting (Windows / PowerShell)
+
+If test_inference.py times out waiting for /healthz, first check if port 8000 is in use:
+
+Run the following to check what's already running on port 8000
+
+    netstat -ano | findstr :8000
+
+For each PID shown as LISTENING, identify it:
+    
+    tasklist /FI "PID eq <PID>"
+
+Kill it (if safe to do so):
+    
+    taskkill /PID <PID> /F
+
+Then rerun:
+
+    pytest
+
+
+------------------------------------------------------------------------
+
 
 # Containerisation
 
-Runtime dependencies:
-
--   Python 3.11 slim
--   NumPy only
-
 Build:
 
-docker build -t raisin-infer .
+    docker build -t raisin-infer .
 
 Run:
 
-docker run -p 8000:8000 raisin-infer
-
-------------------------------------------------------------------------
-
-# Kubernetes Deployment
-
-Container characteristics:
-
--   Stateless
--   CPU-light
--   Memory-light
--   Horizontally scalable
-
-Recommended limits:
-
--   100m CPU
--   128Mi memory
+    docker run -p 8000:8000 raisin-infer
 
 ------------------------------------------------------------------------
 
@@ -245,36 +315,34 @@ Recommended limits:
 
 Reproducibility:
 
--   Fixed random seed
--   Logged hyperparameters
--   Versioned artifacts
+- Deterministic label mapping
+- Fixed random seed
+- Explicit feature ordering
 
 Numerical Stability:
 
--   Clipped logits
--   Probability clipping in loss
--   Zero-variance feature handling
+- Clipped logits
+- Probability clipping in loss
+- Zero-variance feature handling
 
 Production Readiness:
 
--   Deterministic feature ordering
--   Lightweight model registry
--   Drift monitoring
--   Stateless serving
--   Minimal dependency footprint
+- Stateless serving
+- No pickle
+- Minimal dependencies
+- Clean separation of concerns
+- Deterministic inference path
 
 ------------------------------------------------------------------------
 
 # Summary
 
-This repository contains a complete ML system implementing:
+This repository implements a complete ML system:
 
--   Model
--   Training
--   Tracking
--   Registry
--   Monitoring
--   Serving
--   Containerisation
+- Model training
+- Cross-validation
+- Model persistence
+- Inference server
+- Containerisation
 
-Built from first principles using only foundational tools.
+Built from first principles using only foundational Python tools.

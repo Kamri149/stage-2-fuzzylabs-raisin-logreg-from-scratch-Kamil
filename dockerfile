@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy code + artifact
-COPY model.py server.py model.npz ./
+COPY app/model.py app/server.py models/model.npz ./
 
 EXPOSE 8000
 CMD ["python", "server.py"]

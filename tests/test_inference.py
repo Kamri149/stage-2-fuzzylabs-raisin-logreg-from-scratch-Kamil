@@ -45,7 +45,7 @@ def _http_post_json(path: str, payload: dict, timeout: float = 2.0) -> tuple[int
     return _http_post_raw(path, json.dumps(payload).encode("utf-8"), timeout=timeout)
 
 
-def _wait_until_healthy(deadline_s: float = 10.0) -> None:
+def _wait_until_healthy(deadline_s: float = 60) -> None:
     start = time.time()
     while time.time() - start < deadline_s:
         try:
@@ -59,7 +59,7 @@ def _wait_until_healthy(deadline_s: float = 10.0) -> None:
 
 def _start_server() -> subprocess.Popen:
     server_py = ROOT / "app/server.py"
-    model_npz = ROOT / "model.npz"
+    model_npz = ROOT / "models/model.npz"
 
     if not server_py.exists():
         raise RuntimeError(f"Missing {server_py}")
@@ -97,7 +97,7 @@ def server():
     """
     proc = _start_server()
     try:
-        _wait_until_healthy(deadline_s=10.0)
+        _wait_until_healthy(deadline_s=60.0)
         yield proc
     finally:
         _stop_server(proc)

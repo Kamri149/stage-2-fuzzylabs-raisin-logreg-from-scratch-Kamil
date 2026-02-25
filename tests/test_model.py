@@ -2,14 +2,13 @@ import numpy as np
 import tempfile
 import os
 
-from app.model import LogisticRegressionScratch, StandardScaler, sigmoid
+from app.model import LogisticRegression, StandardScaler, sigmoid
 
 
 def test_sigmoid_stability():
     # Extreme values should not overflow
-    large_pos = sigmoid(np.array([1000.0]))
-    large_neg = sigmoid(np.array([-1000.0]))
-
+    large_pos = sigmoid(np.array([1000000.0]))
+    large_neg = sigmoid(np.array([-1000000.0]))
     assert np.isfinite(large_pos).all()
     assert np.isfinite(large_neg).all()
     assert 0.0 < large_pos < 1.0
@@ -21,21 +20,23 @@ def test_training_reduces_loss():
 
     X = rng.normal(size=(200, 5))
     true_w = rng.normal(size=5)
-    logits = X @ true_w
-    y = (logits > 0).astype(np.int64)
+    y = ((X @ true_w) > 0).astype(np.int64)
 
     scaler = StandardScaler()
     Xs = scaler.fit_transform(X)
 
-    model = LogisticRegressionScratch(lr=0.1, n_iters=2000)
+    # Initial model: same init, no optimisation steps
+    model0 = LogisticRegression(lr=0.1, n_iters=0).fit(Xs, y)
+    initial_loss = model0.loss(Xs, y)
 
-    initial_loss = model.loss(Xs, y) if model.w is not None else None
-    model.fit(Xs, y)
+    # Trained model
+    model = LogisticRegression(lr=0.1, n_iters=2000).fit(Xs, y)
     final_loss = model.loss(Xs, y)
 
-    # After training loss should be finite and small
+    assert np.isfinite(initial_loss)
     assert np.isfinite(final_loss)
-    assert final_loss < 0.7  # random baseline ~0.69
+    assert final_loss < initial_loss
+    assert final_loss < 0.7
 
 
 def test_predict_output_shape_and_bounds():
@@ -46,7 +47,7 @@ def test_predict_output_shape_and_bounds():
     scaler = StandardScaler()
     Xs = scaler.fit_transform(X)
 
-    model = LogisticRegressionScratch(lr=0.1, n_iters=500)
+    model = LogisticRegression(lr=0.1, n_iters=500)
     model.fit(Xs, y)
 
     probs = model.predict_proba(Xs)
@@ -68,7 +69,7 @@ def test_save_and_load_consistency():
     scaler = StandardScaler()
     Xs = scaler.fit_transform(X)
 
-    model = LogisticRegressionScratch(lr=0.1, n_iters=1000)
+    model = LogisticRegression(lr=0.1, n_iters=1000)
     model.fit(Xs, y)
 
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -76,7 +77,7 @@ def test_save_and_load_consistency():
         
         model.save_npz(path, scaler, ["f1", "f2", "f3", "f4"], {"a":0, "b":1}) 
  
-        loaded_model, loaded_scaler, _ = LogisticRegressionScratch.load_npz(path) 
+        loaded_model, loaded_scaler, _ = LogisticRegression.load_npz(path) 
  
         original_preds = model.predict_proba(Xs) 
         loaded_preds = loaded_model.predict_proba(loaded_scaler.transform(X)) 
